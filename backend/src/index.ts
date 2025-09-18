@@ -11,52 +11,75 @@ app.use(cors({
   origin: 'http://localhost:3000'
 }))
 
-app.get('/documents', async (req, res) => {
-  // res.json({message: 'Wow good job'})
-  // Backend - GET /documents?pageNum=N
-  const pdfResponse = await fetch(FACTORIO_PRESIGNED_URL)
-  const pdfBuffer = await pdfResponse.arrayBuffer()
-  
-  const fullPdf = await PDFDocument.load(pdfBuffer)
-  const pageNum = parseInt(req.query.pageNum as string, 10)
-  const newPdf = await PDFDocument.create()
-  const [copiedPage] = await newPdf.copyPages(fullPdf, [pageNum - 1])
-  newPdf.addPage(copiedPage)
-  
-  const pagePdfBytes = await newPdf.save()
-  res.setHeader('Content-Type', 'application/pdf')
-  res.send(Buffer.from(pagePdfBytes))
+let cachedFullPdf: PDFDocument | null = null
+let totalPages: number | null = null
+let cachedPage1: Buffer | null = null
 
-  // const data = await fetchData()
-  // res.send(data)
+// Utility to extract a specific page from a PDFDocument as Buffer
+async function extractPage(pdf: PDFDocument, pageNum: number): Promise<Buffer> {
+  const newPdf = await PDFDocument.create()
+  const [copiedPage] = await newPdf.copyPages(pdf, [pageNum - 1])
+  newPdf.addPage(copiedPage)
+  const pageBytes = await newPdf.save()
+  return Buffer.from(pageBytes)
+}
+
+// Load and cache the full PDF and page 1 at startup
+async function preloadPdf() {
+  try {
+    console.log('[BOOT] Fetching PDF from S3...')
+    const pdfResponse = await fetch(FACTORIO_PRESIGNED_URL)
+    const pdfBuffer = await pdfResponse.arrayBuffer()
+
+    cachedFullPdf = await PDFDocument.load(pdfBuffer)
+    totalPages = cachedFullPdf.getPageCount()
+    console.log(`[BOOT] PDF loaded (${totalPages} pages)`)
+
+    // Immediately extract and cache page 1
+    cachedPage1 = await extractPage(cachedFullPdf, 1)
+    console.log('[BOOT] Page 1 extracted and cached')
+  } catch (err) {
+    console.error('[BOOT ERROR] Failed to preload PDF:', err)
+  }
+}
+
+// Route to serve individual pages
+app.get('/documents', async (req, res) => {
+  const pageParam = req.query.pageNum
+  const pageNum = parseInt(pageParam as string, 10)
+
+  if (isNaN(pageNum) || pageNum < 1) {
+    return res.status(400).send('Invalid page number')
+  }
+
+  try {
+    if (!cachedFullPdf || !totalPages) {
+      return res.status(503).send('PDF not yet loaded')
+    }
+
+    // Serve cached page 1
+    if (pageNum === 1 && cachedPage1) {
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Cache-Control', 'public, max-age=60')
+      return res.send(cachedPage1)
+    }
+
+    if (pageNum > totalPages) {
+      return res.status(404).send('Page number exceeds total pages')
+    }
+
+    const pageBuffer = await extractPage(cachedFullPdf, pageNum)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Cache-Control', 'public, max-age=60')
+    res.send(pageBuffer)
+  } catch (err) {
+    console.error('Error serving PDF page:', err)
+    res.status(500).send('Error serving PDF page')
+  }
 })
 
-
-// const fetchData = async () => {
-//   const s3_response = await fetch(FACTORIO_PRESIGNED_URL, {
-//     method: 'GET'
-//   })
-//   console.log('HERE')
-//   //const { data, errors } = await s3_response.json()
-//   const text = await s3_response.text()
-//   console.log(s3_response.headers.get('content-type'))
-//   console.log(text);
-//   const js_text = JSON.parse(text)
-//   console.log(js_text);
-//   // const r = await s3_response;
-//   // console.log(r)
-//   // const { data, errors } = r.json()
-// 	 if (s3_response.ok) {
-//      // console.log(data)
-//      return js_text
-// 	 } else {
-//      // console.log('uh oh')
-// 	 	// handle the graphql errors
-// 	 	// const error = new Error(
-// 	 	// 	errors?.map((e: any) => e.message).join('\n') ?? 'unknown',
-// 	 	// )
-// 	 	return Promise.reject('lol')
-// 	 }
-// }
-
-app.listen(8000)
+// Boot logic
+app.listen(8000, async () => {
+  console.log('🚀 Server listening at http://localhost:8000')
+  await preloadPdf()
+})
