@@ -13,7 +13,7 @@ const LandingPage: React.FC = () => {
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:8080/documents')
+      const response = await fetch('http://localhost:8000/documents')
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`)
       }

@@ -11,9 +11,9 @@ app.use(cors({
 }))
 
 app.get('/documents', async (req, res) => {
-  res.json({message: 'Wow good job'})
-  // const data = await fetchData()
-  // res.send(data)
+  // res.json({message: 'Wow good job'})
+  const data = await fetchData()
+  res.send(data)
 })
 
 
@@ -26,12 +26,14 @@ const fetchData = async () => {
   const text = await s3_response.text()
   console.log(s3_response.headers.get('content-type'))
   console.log(text);
+  const js_text = JSON.parse(text)
+  console.log(js_text);
   // const r = await s3_response;
   // console.log(r)
   // const { data, errors } = r.json()
 	 if (s3_response.ok) {
      // console.log(data)
-     return text
+     return js_text
 	 } else {
      // console.log('uh oh')
 	 	// handle the graphql errors
@@ -42,4 +44,4 @@ const fetchData = async () => {
 	 }
 }
 
-app.listen(8080)
+app.listen(8000)
