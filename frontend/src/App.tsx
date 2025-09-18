@@ -9,7 +9,8 @@ function App() {
     console.log('button clicked!')
   }
 
-  return <LandingPage onStart={handleStart} />
+  return <LandingPage/>
+  // return <LandingPage onStart={handleStart} />
 }
 
 export default App;

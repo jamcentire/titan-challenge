@@ -45,3 +45,15 @@
 .button:hover {
   background-color: #2b6cb0;
 }
+
+.result {
+  margin-top: 1.5rem;
+  color: #2f855a;
+  font-weight: bold;
+}
+
+.error {
+  margin-top: 1.5rem;
+  color: #e53e3e;
+  font-weight: bold;
+}

@@ -1,13 +1,19 @@
 import express from 'express';
+import cors from 'cors';
 // import { fetch } from 'node-fetch';
 
 import { PRESIGNED_S3_URL } from './url';
 
 const app = express()
 
-app.get('/', async (req, res) => {
-  const data = await fetchData()
-  res.send(data)
+app.use(cors({
+  origin: 'http://localhost:3000'
+}))
+
+app.get('/documents', async (req, res) => {
+  res.json({message: 'Wow good job'})
+  // const data = await fetchData()
+  // res.send(data)
 })
 
 
