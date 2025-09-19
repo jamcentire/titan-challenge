@@ -3,7 +3,7 @@ import logo from './logo.svg';
 import './App.css';
 
 import LandingPage from './components/LandingPage';
-import PageViewer from './PageViewer'
+import { PageViewer } from './PageViewer'
 
 function App() {
   const handleStart = () => {
