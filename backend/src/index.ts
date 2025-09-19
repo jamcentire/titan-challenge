@@ -8,7 +8,9 @@ import { FACTORIO_PRESIGNED_URL } from './urls';
 const app = express()
 
 app.use(cors({
-  origin: 'http://localhost:3000'
+  origin: 'http://localhost:3000',
+  methods: ['GET'],
+  allowedHeaders: ['Content-Type']
 }))
 
 let cachedFullPdf: PDFDocument | null = null
@@ -60,6 +62,7 @@ app.get('/documents', async (req, res) => {
     // Serve cached page 1
     if (pageNum === 1 && cachedPage1) {
       res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', 'inline')
       res.setHeader('Cache-Control', 'public, max-age=60')
       return res.send(cachedPage1)
     }
@@ -70,6 +73,7 @@ app.get('/documents', async (req, res) => {
 
     const pageBuffer = await extractPage(cachedFullPdf, pageNum)
     res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', 'inline')
     res.setHeader('Cache-Control', 'public, max-age=60')
     res.send(pageBuffer)
   } catch (err) {
