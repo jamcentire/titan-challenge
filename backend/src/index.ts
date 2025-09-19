@@ -1,9 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from 'pdf-lib';
 // import { fetch } from 'node-fetch';
-
-import { FACTORIO_PRESIGNED_URL } from './urls';
+import { S3_PRESIGNED_URL } from './urls';
 
 const app = express()
 
@@ -30,7 +29,7 @@ async function extractPage(pdf: PDFDocument, pageNum: number): Promise<Buffer> {
 async function preloadPdf() {
   try {
     console.log('[BOOT] Fetching PDF from S3...')
-    const pdfResponse = await fetch(FACTORIO_PRESIGNED_URL)
+    const pdfResponse = await fetch(S3_PRESIGNED_URL)
     const pdfBuffer = await pdfResponse.arrayBuffer()
 
     cachedFullPdf = await PDFDocument.load(pdfBuffer)
